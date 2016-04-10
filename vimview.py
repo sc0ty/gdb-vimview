@@ -31,7 +31,7 @@ import os.path
 class VimRemote:
 	serverName = None
 	cmd = None
-	debug = True
+	debug = False
 
 	curFile = None
 	curLine = None
