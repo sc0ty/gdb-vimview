@@ -66,7 +66,7 @@ class VimRemote:
 		return out, err
 	
 	def openFile(self, fileName, lineNo=None, existingOnly=True, reopen=False):
-		if fileName == self.curFile and lineNo == self.curLine:
+		if not reopen and (fileName == self.curFile and lineNo == self.curLine):
 			return False
 
 		if existingOnly and not os.path.isfile(fileName):
@@ -120,7 +120,7 @@ class CmdView(gdb.Command):
 
 	def invoke(self, arg, from_tty):
 		global vimRemote
-		vimRemote.openCurrentFile(showError=True)
+		vimRemote.openCurrentFile(showError=True, reopen=True)
 
 
 ### Command: set breakpoint under vim cursor ###
