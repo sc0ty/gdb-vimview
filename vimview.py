@@ -125,10 +125,7 @@ class CmdView(gdb.Command):
 
 ### Command: set breakpoint under vim cursor ###
 class CmdBreak(gdb.Command):
-	type = None
-
-	def __init__(self, cmd, type=gdb.BP_BREAKPOINT):
-		self.type = type
+	def __init__(self, cmd):
 		super(CmdBreak, self).__init__(cmd, gdb.COMMAND_USER)
 
 	def invoke(self, arg, from_tty):
@@ -137,7 +134,7 @@ class CmdBreak(gdb.Command):
 		fileName = out.rstrip()
 
 		if not err:
-			gdb.Breakpoint(fileName, self.type)
+			gdb.Breakpoint(fileName, gdb.BP_BREAKPOINT)
 		else:
 			gdb.write('error: ' + err.decode('utf-8'))
 
@@ -174,8 +171,7 @@ def prompt(pr):
 if __name__ == "__main__":
 	CmdView('vim')
 	CmdView('v')
-	CmdBreak('vbreak', type=gdb.BP_BREAKPOINT)
-	CmdBreak('vwatch', type=gdb.BP_WATCHPOINT)
+	CmdBreak('vbreak')
 	SetServerName('vim-server')
 
 	gdb.events.stop.connect(eventStop)
