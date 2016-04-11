@@ -9,7 +9,8 @@ This is gdb plugin that will synchronize vim with gdb (running in separate termi
 Vim has the ability to run as server, executing remote commands. VimView is a Python plugin that exploit this feature.
 
 ## Requirements
-1. Vim/gvim with `clientserver` option compiled in. Test it with `vim --version` - look for `+clientserver`. Note that vim needs to be run under X11/XWindow to be able to communicate (even the terminal version).
+1. Gdb with python support compiled in. Test with `python-interactive` command under gdb.
+2. Vim/gvim with `clientserver` option compiled in. Test it with `vim --version` - look for `+clientserver`. Note that vim needs to be run under X11/XWindow to be able to communicate (even the terminal version).
 You could try to run server:
 ```
 vim --servername test
@@ -18,7 +19,6 @@ and remotely send command to it:
 ```
 vim --servername test --remote ~/.vimrc
 ```
-2. Gdb with python support compiled in. Test with `python-interactive` command under gdb.
 
 ## Usage
 To start, run vim in server mode:
