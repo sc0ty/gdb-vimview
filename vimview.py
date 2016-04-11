@@ -110,7 +110,7 @@ class VimRemote:
 		file = frameSym.symtab.fullname()
 		self.openFile(file, frameSym.line, existingOnly, reopen)
 
-vimRemote = VimRemote()
+global vimRemote
 
 
 ### Command: view current file in vim ###
@@ -169,6 +169,9 @@ def prompt(pr):
 
 
 if __name__ == "__main__":
+	if 'vimRemote' not in globals():
+		vimRemote = VimRemote()
+
 	CmdView('vim')
 	CmdView('v')
 	CmdBreak('vbreak')
