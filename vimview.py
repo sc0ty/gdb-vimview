@@ -168,15 +168,11 @@ This is part of the VimView plugin."""
 				fileName = br.location
 				lineNo = None
 
-### Parameter: set vim server name ###
-class SetServerName(gdb.Parameter):
-	def __init__(self, cmd):
-		self.set_doc = 'Vim server name:'
-		self.show_doc = self.set_doc
-		super(SetServerName, self).__init__(cmd, gdb.COMMAND_NONE, gdb.PARAM_STRING)
+			if not vimRemote.openFile(fileName, lineNo, reopen=True):
+				gdb.write('cannot open file "' + fileName + '"\n')
 
-		global vimRemote
-		self.value = vimRemote.serverName
+		except StopIteration:
+			gdb.write('no breakpoint number ' + str(no) + '\n')
 
 
 ### Convenience variable: word under vim cursor ###
@@ -189,7 +185,6 @@ class VarCursorWord(gdb.Function):
 		super(VarCursorWord, self).__init__ (name)
 
 	def invoke(self, *args):
-	def get_set_string(self):
 		global vimRemote
 		out, err = vimRemote.execCmd(self.cmd)
 		if not err:
@@ -197,8 +192,6 @@ class VarCursorWord(gdb.Function):
 		else:
 			gdb.write('error: ' + err)
 			return ''
-		vimRemote.setServerName(self.value)
-		return self.value
 
 
 ### Event handlers ###
@@ -214,6 +207,75 @@ def prompt(pr):
 	return None
 
 
+### Parameter: vimview stop hook ###
+class ParamVimViewOnStop(gdb.Parameter):
+	"""This is part of the VimView plugin."""
+	isHooked = False
+
+	def __init__(self, cmd):
+		self.value = False
+		self.set_doc = 'VimView: following frame on stop.'
+		self.show_doc = self.set_doc
+		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
+
+	def get_set_string(self):
+		if self.value:
+			if not self.isHooked:
+				gdb.events.stop.connect(eventStop)
+				self.isHooked = True
+			return 'on'
+		else:
+			if self.isHooked:
+				gdb.events.stop.disconnect(eventStop)
+				self.isHooked = False
+			return 'off'
+
+	def get_show_string(self, svalue):
+		return 'Following frame on stop is ' + svalue
+
+
+### Parameter: vimview stop hook ###
+class ParamVimViewOnPrompt(gdb.Parameter):
+	"""This is part of the VimView plugin."""
+	def __init__(self, cmd):
+		self.value = False
+		self.set_doc = 'VimView: following frame on prompt show.'
+		self.show_doc = self.set_doc
+		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
+
+	def get_set_string(self):
+		# TODO: save/restore current prompt_hook
+		if self.value:
+			gdb.prompt_hook = prompt
+			return 'on'
+		else:
+			gdb.prompt_hook = None
+			return 'off'
+
+	def get_show_string(self, svalue):
+		return 'Following frame on prompt show is ' + svalue
+
+
+### Parameter: vim server name ###
+class ParamServerName(gdb.Parameter):
+	"""This is part of the VimView plugin."""
+	def __init__(self, cmd):
+		self.set_doc = 'Set remote vim server name.'
+		self.show_doc = self.set_doc
+		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
+
+		global vimRemote
+		self.value = vimRemote.serverName
+
+	def get_set_string(self):
+		global vimRemote
+		vimRemote.setServerName(self.value)
+		return self.value
+
+	def get_show_string(self, svalue):
+		return 'Vim server name is "' + svalue + '"'
+
+
 if __name__ == "__main__":
 	if 'vimRemote' not in globals():
 		vimRemote = VimRemote()
@@ -221,13 +283,14 @@ if __name__ == "__main__":
 	CmdView('vim')
 	CmdView('v')
 	CmdBreak('vbreak')
-	SetServerName('vim-server')
 
 	VarCursorWord('vw', 'expand("<cword>")')
 	VarCursorWord('ve', 'expand("<cWORD>")')
 	VarCursorWord('vf', 'expand("%:p")')
 	VarCursorWord('vl', 'line(".")')
 	VarCursorWord('vfl', 'expand("%:p") . ":" . line(".")')
-	gdb.events.stop.connect(eventStop)
-	gdb.prompt_hook = prompt
+
+	ParamVimViewOnStop('vimview-onstop')
+	ParamVimViewOnPrompt('vimview-onprompt')
+	ParamServerName('vimview-server')
 
