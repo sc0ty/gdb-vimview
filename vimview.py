@@ -49,7 +49,7 @@ class VimRemote:
 	def setServerName(self, name):
 		if name:
 			self.serverName = name
-			self.cmd = ['vim', '--servername', name]
+			self.cmd = ['vim', '+q', '--servername', name]
 
 	def execCmd(self, command):
 		cmd = self.cmd + ['--remote-expr', command]
