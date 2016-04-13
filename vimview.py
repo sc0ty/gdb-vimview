@@ -116,6 +116,8 @@ class VimRemote:
 
 ### Command: view current file in vim ###
 class CmdView(gdb.Command):
+	"""Show current stack frame in vim.
+This is part of the VimView plugin."""
 	def __init__(self, cmd):
 		super (CmdView, self).__init__(cmd, gdb.COMMAND_USER)
 
