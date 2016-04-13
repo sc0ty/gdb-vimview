@@ -126,19 +126,45 @@ class CmdView(gdb.Command):
 
 ### Command: set breakpoint under vim cursor ###
 class CmdBreak(gdb.Command):
+	"""Set breakpoint under current vim cursor position.
+If run with breakpoint number as argument, will show breakpoint position in vim.
+This is part of the VimView plugin."""
 	def __init__(self, cmd):
 		super(CmdBreak, self).__init__(cmd, gdb.COMMAND_USER)
 
 	def invoke(self, arg, from_tty):
+		if arg:
+			try:
+				self.showBreak(int(arg))
+			except ValueError:
+				gdb.write('expected breakpoint number, got "' + arg + '"\n')
+		else:
+			self.putBreak()
+
+	def putBreak(self):
 		global vimRemote
 		out, err = vimRemote.execCmd('expand("%:p") . ":" . line(".")')
 		fileName = out.rstrip()
 
 		if not err:
-			gdb.Breakpoint(fileName, gdb.BP_BREAKPOINT)
+			try:
+				gdb.Breakpoint(fileName, gdb.BP_BREAKPOINT)
+			except RuntimeError as ex:
+				gdb.write(str(ex) + '\n')
 		else:
-			gdb.write('error: ' + err.decode('utf-8'))
+			gdb.write('error: ' + err)
 
+	def showBreak(self, no):
+		# TODO: handle non-file name locations
+		global vimRemote
+		try:
+			br = next(x for x in gdb.breakpoints() if x.number==no)
+			try:
+				fileName, lineNo = br.location.rsplit(':', 1)
+				lineNo = int(lineNo)
+			except ValueError:
+				fileName = br.location
+				lineNo = None
 
 ### Parameter: set vim server name ###
 class SetServerName(gdb.Parameter):
