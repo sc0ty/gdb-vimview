@@ -52,7 +52,7 @@ class VimRemote:
 		cmd = self.cmd + ['--remote-expr', command]
 		self.dbgPrint('cmd', str(cmd))
 
-		vim = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+		vim = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 		out, err = vim.communicate()
 
 		if out:
