@@ -36,7 +36,10 @@ class VimRemote:
 	curFile = None
 	curLine = None
 
+	nullPipe = None
+
 	def __init__(self):
+		self.nullPipe = open(os.devnull, 'w')
 		self.setServerName('gdb')
 
 	def dbgPrint(self, info, msg):
@@ -82,7 +85,7 @@ class VimRemote:
 		self.curFile = fileName
 		self.curLine = lineNo
 
-		subprocess.call(cmd)
+		subprocess.Popen(cmd, stdout=self.nullPipe, stderr=self.nullPipe)
 		return True
 
 	def openCurrentFile(self, showError=True, existingOnly=True, reopen=False):
