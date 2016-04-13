@@ -113,8 +113,6 @@ class VimRemote:
 		file = frameSym.symtab.fullname()
 		self.openFile(file, frameSym.line, existingOnly, reopen)
 
-global vimRemote
-
 
 ### Command: view current file in vim ###
 class CmdView(gdb.Command):
