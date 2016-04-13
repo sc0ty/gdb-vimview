@@ -28,6 +28,8 @@ vim --servername gdb
 And (in another terminal) under gdb:
 ```
 source /path/to/vimview.py
+set vimview-onstop on
+set vimview-onprompt on
 ```
 You could also add this to your `.gdbinit`.
 
@@ -37,15 +39,24 @@ Now start debugging and you will see the magic.
 Gdb commands available:
  - `v` or `vim` - show current frame in vim
  - `vbreak` - set breakpoint under current vim cursor position
+ - `vbreak [no]` - show breakpoint position in vim
 
 ### Configuration
 Gdb settings available:
- - `set vim-server [name]` - change vim server name to use, default is `gdb`
+ - `set vimview-server [name]` - change vim server name to use, default is `gdb`
+ - `set vimview-onstop [on/off]` - show current position in vim whenever debugging stops
+ - `set vimview-onprompt [on/off]` - show position on every prompt print (only when position was updated); it could interfere with other plugins that tries to hook prompt
+
+Convenience variables (to be used with other commands, e.g `print $vw()`):
+ - `$vw()` - word under vim cursor
+ - `$ve()` - expression under vim cursor
+ - `$vf()` - absolute vim file path
+ - `$vl()` - vim cursor line number
+ - `$vfl()` - vim file:line, equivalent to `$vf():$vl()`
 
 Debug options:
  - `pi vimRemote.debug = True` - print vim commands beeing executed
 
 ### Known bugs
- - using vimview without coresponding vim server will result in spawning new vim instance under gdb
  - this plugin may interfere with other gdb plugins that tries to hook prompt
 
