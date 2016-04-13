@@ -178,8 +178,25 @@ class SetServerName(gdb.Parameter):
 		global vimRemote
 		self.value = vimRemote.serverName
 
+
+### Convenience variable: word under vim cursor ###
+class VarCursorWord(gdb.Function):
+	cmd = None
+
+	def __init__ (self, name, cmd):
+		self.name = name
+		self.cmd = cmd
+		super(VarCursorWord, self).__init__ (name)
+
+	def invoke(self, *args):
 	def get_set_string(self):
 		global vimRemote
+		out, err = vimRemote.execCmd(self.cmd)
+		if not err:
+			return out.rstrip()
+		else:
+			gdb.write('error: ' + err)
+			return ''
 		vimRemote.setServerName(self.value)
 		return self.value
 
@@ -206,6 +223,11 @@ if __name__ == "__main__":
 	CmdBreak('vbreak')
 	SetServerName('vim-server')
 
+	VarCursorWord('vw', 'expand("<cword>")')
+	VarCursorWord('ve', 'expand("<cWORD>")')
+	VarCursorWord('vf', 'expand("%:p")')
+	VarCursorWord('vl', 'line(".")')
+	VarCursorWord('vfl', 'expand("%:p") . ":" . line(".")')
 	gdb.events.stop.connect(eventStop)
 	gdb.prompt_hook = prompt
 
