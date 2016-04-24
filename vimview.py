@@ -216,22 +216,28 @@ class ParamVimViewOnStop(gdb.Parameter):
 		self.value = False
 		self.set_doc = 'VimView: following frame on stop.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
+		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, \
+				gdb.PARAM_ENUM, ['on', 'off', 'auto'])
 
 	def get_set_string(self):
-		if self.value:
+		if self.value == 'auto':
+			if 'VIMSERVER' in os.environ:
+				self.value = 'on'
+			else:
+				self.value = 'off'
+
+		if self.value == 'on':
 			if not self.isHooked:
 				gdb.events.stop.connect(eventStop)
 				self.isHooked = True
-			return 'on'
 		else:
 			if self.isHooked:
 				gdb.events.stop.disconnect(eventStop)
 				self.isHooked = False
-			return 'off'
+		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Following frame on stop is ' + svalue
+		return 'Vim follows frame on stop: ' + svalue
 
 
 ### Parameter: vimview stop hook ###
@@ -241,19 +247,26 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 		self.value = False
 		self.set_doc = 'VimView: following frame on prompt show.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
+		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, \
+				gdb.PARAM_ENUM, ['on', 'off', 'auto'])
 
 	def get_set_string(self):
 		# TODO: save/restore current prompt_hook
-		if self.value:
+
+		if self.value == 'auto':
+			if 'VIMSERVER' in os.environ:
+				self.value = 'on'
+			else:
+				self.value = 'off'
+
+		if self.value == 'on':
 			gdb.prompt_hook = prompt
-			return 'on'
 		else:
 			gdb.prompt_hook = None
-			return 'off'
+		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Following frame on prompt show is ' + svalue
+		return 'Vim follows frame on prompt: ' + svalue
 
 
 ### Parameter: vim server name ###
@@ -270,15 +283,22 @@ class ParamServerName(gdb.Parameter):
 	def get_set_string(self):
 		global vimRemote
 		vimRemote.setServerName(self.value)
-		return self.value
+		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Vim server name is "' + svalue + '"'
+		return 'Vim server name: "' + svalue + '"'
 
 
 if __name__ == "__main__":
 	if 'vimRemote' not in globals():
 		vimRemote = VimRemote()
+
+	try:
+		serverName = os.environ['VIMSERVER']
+		vimRemote.setServerName(serverName)
+		gdb.write('Vim server name: "' + serverName + '"\n')
+	except KeyError:
+		serverName = None
 
 	CmdView('vim')
 	CmdView('v')
