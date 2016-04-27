@@ -85,7 +85,8 @@ class VimRemote:
 		self.curFile = fileName
 		self.curLine = lineNo
 
-		subprocess.Popen(cmd, stdout=self.nullPipe, stderr=self.nullPipe)
+		vim = subprocess.Popen(cmd, stdout=self.nullPipe, stderr=self.nullPipe)
+		vim.communicate()
 		return True
 
 	def openCurrentFile(self, showError=True, existingOnly=True, reopen=False):
