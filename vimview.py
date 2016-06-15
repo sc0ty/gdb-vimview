@@ -274,7 +274,7 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 class ParamServerName(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
-		self.set_doc = 'Set remote vim server name.'
+		self.set_doc = 'VimView: remote vim server name.'
 		self.show_doc = self.set_doc
 		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 
