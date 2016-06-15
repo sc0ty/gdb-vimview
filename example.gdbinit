@@ -12,6 +12,9 @@ set vimview-onprompt on
 # set vim server name (case insensitive)
 #set vimview-server myname
 
+# open files in tabs
+set vimview-tabs on
+
 # enable debug mode
 #pi vimRemote.debug = True
 

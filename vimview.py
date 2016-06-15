@@ -27,10 +27,23 @@ import subprocess
 import os.path
 
 
+### Helper function ###
+def _GdbBooleanToStr(val):
+	if val == True:
+		return 'on'
+	elif val == False:
+		return 'off'
+	elif val == None:
+		return 'auto'
+	else:
+		return str(val)
+
+
 ### Remote communication with vim ###
 class VimRemote:
 	serverName = None
 	cmd = None
+	cmdFileArg = None
 	debug = False
 
 	curFile = None
@@ -41,6 +54,7 @@ class VimRemote:
 	def __init__(self):
 		self.nullPipe = open(os.devnull, 'w')
 		self.setServerName('gdb')
+		self.setUseTabs(False)
 
 	def dbgPrint(self, info, msg):
 		if self.debug and msg:
@@ -50,6 +64,12 @@ class VimRemote:
 		if name:
 			self.serverName = name
 			self.cmd = ['vim', '+q', '--servername', name]
+
+	def setUseTabs(self, useTabs):
+		if useTabs:
+			self.cmdFileArg = '--remote-tab'
+		else:
+			self.cmdFileArg = '--remote'
 
 	def execCmd(self, command):
 		cmd = self.cmd + ['--remote-expr', command]
@@ -76,9 +96,9 @@ class VimRemote:
 			return False
 
 		if lineNo:
-			cmd = self.cmd + ['--remote', '+' + str(lineNo), fileName]
+			cmd = self.cmd + [self.cmdFileArg, '+' + str(lineNo), fileName]
 		else:
-			cmd = self.cmd + ['--remote', fileName]
+			cmd = self.cmd + [self.cmdFileArg, fileName]
 
 		self.dbgPrint('cmd', str(cmd))
 
@@ -290,6 +310,24 @@ class ParamServerName(gdb.Parameter):
 		return 'Vim server name: "' + svalue + '"'
 
 
+### Parameter: use tabs in vim ###
+class ParamUseTabs(gdb.Parameter):
+	"""This is part of the VimView plugin."""
+	def __init__(self, cmd):
+		self.value = False
+		self.set_doc = 'VimView: open files in tabs.'
+		self.show_doc = self.set_doc
+		super(ParamUseTabs, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
+
+	def get_set_string(self):
+		global vimRemote
+		vimRemote.setUseTabs(self.value)
+		return self.get_show_string(self.value)
+
+	def get_show_string(self, svalue):
+		return 'Open files in tabs: ' + _GdbBooleanToStr(svalue)
+
+
 if __name__ == "__main__":
 	if 'vimRemote' not in globals():
 		vimRemote = VimRemote()
@@ -314,4 +352,5 @@ if __name__ == "__main__":
 	ParamVimViewOnStop('vimview-onstop')
 	ParamVimViewOnPrompt('vimview-onprompt')
 	ParamServerName('vimview-server')
+	ParamUseTabs('vimview-tabs')
 
