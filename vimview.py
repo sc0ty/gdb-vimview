@@ -270,6 +270,8 @@ class ParamVimViewOnStop(gdb.Parameter):
 ### Parameter: vimview prompt hook ###
 class ParamVimViewOnPrompt(gdb.Parameter):
 	"""This is part of the VimView plugin."""
+	prevHook = gdb.prompt_hook
+
 	def __init__(self, cmd):
 		self.value = False
 		self.set_doc = 'VimView: following frame on prompt show.'
@@ -277,15 +279,17 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
-		# TODO: save/restore current prompt_hook
-
 		if self.value == None:	# auto
 			self.value = _isVimServerNameVariableSet()
 
 		if self.value:
-			gdb.prompt_hook = prompt
+			if gdb.prompt_hook != prompt:
+				gdb.write(' !! ')
+				self.prevHook = gdb.prompt_hook
+				gdb.prompt_hook = prompt
 		else:
-			gdb.prompt_hook = None
+			gdb.prompt_hook = self.prevHook
+
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
