@@ -241,7 +241,7 @@ class ParamVimViewOnStop(gdb.Parameter):
 		return 'Vim follows frame on stop: ' + svalue
 
 
-### Parameter: vimview stop hook ###
+### Parameter: vimview prompt hook ###
 class ParamVimViewOnPrompt(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
