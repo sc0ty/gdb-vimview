@@ -237,17 +237,16 @@ class ParamVimViewOnStop(gdb.Parameter):
 		self.value = False
 		self.set_doc = 'VimView: following frame on stop.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, \
-				gdb.PARAM_ENUM, ['on', 'off', 'auto'])
+		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
-		if self.value == 'auto':
+		if self.value == None:	# auto
 			if 'VIMSERVER' in os.environ:
-				self.value = 'on'
+				self.value = True
 			else:
-				self.value = 'off'
+				self.value = False
 
-		if self.value == 'on':
+		if self.value:
 			if not self.isHooked:
 				gdb.events.stop.connect(eventStop)
 				self.isHooked = True
@@ -258,7 +257,7 @@ class ParamVimViewOnStop(gdb.Parameter):
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Vim follows frame on stop: ' + svalue
+		return 'Vim follows frame on stop: ' + _GdbBooleanToStr(svalue)
 
 
 ### Parameter: vimview prompt hook ###
@@ -268,26 +267,25 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 		self.value = False
 		self.set_doc = 'VimView: following frame on prompt show.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, \
-				gdb.PARAM_ENUM, ['on', 'off', 'auto'])
+		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
 		# TODO: save/restore current prompt_hook
 
-		if self.value == 'auto':
+		if self.value == None:	# auto
 			if 'VIMSERVER' in os.environ:
-				self.value = 'on'
+				self.value = True
 			else:
-				self.value = 'off'
+				self.value = False
 
-		if self.value == 'on':
+		if self.value:
 			gdb.prompt_hook = prompt
 		else:
 			gdb.prompt_hook = None
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Vim follows frame on prompt: ' + svalue
+		return 'Vim follows frame on prompt: ' + _GdbBooleanToStr(svalue)
 
 
 ### Parameter: vim server name ###
