@@ -59,7 +59,7 @@ Convenience variables (to be used with other commands, e.g `print $vw()`):
  - `$vfl()` - vim file:line, equivalent to `$vf():$vl()`
 
 Debug options:
- - `pi vimRemote.debug = True` - print vim commands beeing executed
+ - `pi vimView.debug = True` - print vim commands beeing executed
 
 ### Known bugs
  - this plugin may interfere with other gdb plugins that tries to hook prompt

@@ -50,7 +50,7 @@ def _isVimServerNameVariableSet():
 		return False
 
 ### Remote communication with vim ###
-class VimRemote:
+class VimView:
 	serverName = None
 	cmd = None
 	cmdFileArg = None
@@ -153,8 +153,8 @@ This is part of the VimView plugin."""
 		super (CmdView, self).__init__(cmd, gdb.COMMAND_USER)
 
 	def invoke(self, arg, from_tty):
-		global vimRemote
-		vimRemote.openCurrentFile(showError=True, reopen=True)
+		global vimView
+		vimView.openCurrentFile(showError=True, reopen=True)
 
 
 ### Command: set breakpoint under vim cursor ###
@@ -175,8 +175,8 @@ This is part of the VimView plugin."""
 			self.putBreak()
 
 	def putBreak(self):
-		global vimRemote
-		out, err = vimRemote.execCmd('expand("%:p") . ":" . line(".")')
+		global vimView
+		out, err = vimView.execCmd('expand("%:p") . ":" . line(".")')
 		fileName = out.rstrip()
 
 		if not err:
@@ -189,7 +189,7 @@ This is part of the VimView plugin."""
 
 	def showBreak(self, no):
 		# TODO: handle non-file name locations
-		global vimRemote
+		global vimView
 		try:
 			br = next(x for x in gdb.breakpoints() if x.number==no)
 			try:
@@ -199,7 +199,7 @@ This is part of the VimView plugin."""
 				fileName = br.location
 				lineNo = None
 
-			if not vimRemote.openFile(fileName, lineNo, reopen=True):
+			if not vimView.openFile(fileName, lineNo, reopen=True):
 				gdb.write('cannot open file "' + fileName + '"\n')
 
 		except StopIteration:
@@ -216,8 +216,8 @@ class VarCursorWord(gdb.Function):
 		super(VarCursorWord, self).__init__ (name)
 
 	def invoke(self, *args):
-		global vimRemote
-		out, err = vimRemote.execCmd(self.cmd)
+		global vimView
+		out, err = vimView.execCmd(self.cmd)
 		if not err:
 			return out.rstrip()
 		else:
@@ -227,14 +227,14 @@ class VarCursorWord(gdb.Function):
 
 ### Event handlers ###
 def eventStop(ev):
-	global vimRemote
-	vimRemote.openCurrentFile(showError=False, reopen=True)
+	global vimView
+	vimView.openCurrentFile(showError=False, reopen=True)
 
 
 ### Prompt hook ###
 def prompt(pr):
-	global vimRemote
-	vimRemote.openCurrentFile(showError=False)
+	global vimView
+	vimView.openCurrentFile(showError=False)
 	return None
 
 
@@ -300,12 +300,12 @@ class ParamServerName(gdb.Parameter):
 		self.show_doc = self.set_doc
 		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 
-		global vimRemote
-		self.value = vimRemote.serverName
+		global vimView
+		self.value = vimView.serverName
 
 	def get_set_string(self):
-		global vimRemote
-		vimRemote.setServerName(self.value)
+		global vimView
+		vimView.setServerName(self.value)
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
@@ -322,8 +322,8 @@ class ParamUseTabs(gdb.Parameter):
 		super(ParamUseTabs, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
 
 	def get_set_string(self):
-		global vimRemote
-		vimRemote.setUseTabs(self.value)
+		global vimView
+		vimView.setUseTabs(self.value)
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
@@ -331,12 +331,12 @@ class ParamUseTabs(gdb.Parameter):
 
 
 if __name__ == "__main__":
-	if 'vimRemote' not in globals():
-		vimRemote = VimRemote()
+	if 'vimView' not in globals():
+		vimView = VimView()
 
 	try:
 		serverName = _getVimServerNameVariable()
-		vimRemote.setServerName(serverName)
+		vimView.setServerName(serverName)
 		gdb.write('Vim server name: "' + serverName + '"\n')
 	except KeyError:
 		serverName = None

@@ -16,5 +16,5 @@ set vimview-onprompt on
 set vimview-tabs on
 
 # enable debug mode
-#pi vimRemote.debug = True
+#pi vimView.debug = True
 
