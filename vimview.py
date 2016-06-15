@@ -27,8 +27,9 @@ import subprocess
 import os.path
 
 
-### Helper function ###
-def _GdbBooleanToStr(val):
+### Helper functions ###
+
+def _gdbBooleanToStr(val):
 	if val == True:
 		return 'on'
 	elif val == False:
@@ -38,6 +39,15 @@ def _GdbBooleanToStr(val):
 	else:
 		return str(val)
 
+def _getVimServerNameVariable():
+	return os.environ['VIMSERVER']
+
+def _isVimServerNameVariableSet():
+	try:
+		_getVimServerNameVariable()
+		return True
+	except KeyError:
+		return False
 
 ### Remote communication with vim ###
 class VimRemote:
@@ -241,10 +251,7 @@ class ParamVimViewOnStop(gdb.Parameter):
 
 	def get_set_string(self):
 		if self.value == None:	# auto
-			if 'VIMSERVER' in os.environ:
-				self.value = True
-			else:
-				self.value = False
+			self.value = _isVimServerNameVariableSet()
 
 		if self.value:
 			if not self.isHooked:
@@ -257,7 +264,7 @@ class ParamVimViewOnStop(gdb.Parameter):
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Vim follows frame on stop: ' + _GdbBooleanToStr(svalue)
+		return 'Vim follows frame on stop: ' + _gdbBooleanToStr(svalue)
 
 
 ### Parameter: vimview prompt hook ###
@@ -273,10 +280,7 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 		# TODO: save/restore current prompt_hook
 
 		if self.value == None:	# auto
-			if 'VIMSERVER' in os.environ:
-				self.value = True
-			else:
-				self.value = False
+			self.value = _isVimServerNameVariableSet()
 
 		if self.value:
 			gdb.prompt_hook = prompt
@@ -285,7 +289,7 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Vim follows frame on prompt: ' + _GdbBooleanToStr(svalue)
+		return 'Vim follows frame on prompt: ' + _gdbBooleanToStr(svalue)
 
 
 ### Parameter: vim server name ###
@@ -323,7 +327,7 @@ class ParamUseTabs(gdb.Parameter):
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
-		return 'Open files in tabs: ' + _GdbBooleanToStr(svalue)
+		return 'Open files in tabs: ' + _gdbBooleanToStr(svalue)
 
 
 if __name__ == "__main__":
@@ -331,7 +335,7 @@ if __name__ == "__main__":
 		vimRemote = VimRemote()
 
 	try:
-		serverName = os.environ['VIMSERVER']
+		serverName = _getVimServerNameVariable()
 		vimRemote.setServerName(serverName)
 		gdb.write('Vim server name: "' + serverName + '"\n')
 	except KeyError:
