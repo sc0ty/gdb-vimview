@@ -97,7 +97,7 @@ class VimView:
 			self.dbgPrint('err', err)
 
 		return out, err
-	
+
 	def openFile(self, fileName, lineNo=None, existingOnly=True, reopen=False):
 		if not reopen and (fileName == self.curFile and lineNo == self.curLine):
 			return False
@@ -284,7 +284,6 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 
 		if self.value:
 			if gdb.prompt_hook != prompt:
-				gdb.write(' !! ')
 				self.prevHook = gdb.prompt_hook
 				gdb.prompt_hook = prompt
 		else:
