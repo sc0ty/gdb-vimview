@@ -44,6 +44,7 @@ Gdb commands available:
 ### Configuration
 Gdb settings available:
  - `set vimview-server [name]` - change vim server name to use, default is `gdb`
+ - `set vimview-command [name]` - change command to execute, default is `vim`
  - `set vimview-onstop [on/off/auto]` - show current position in vim whenever debugging stops; if sets to `auto` it will be activated only when `VIMSERVER` variable is set
  - `set vimview-onprompt [on/off/auto]` - show position on every prompt print (only when position was updated); if sets to `auto` it will be activated only when `VIMSERVER` variable is set
  - `set vimview-tabs [on/off]` - if on, each new file will be opened in another vim tab

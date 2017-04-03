@@ -49,37 +49,41 @@ def _isVimServerNameVariableSet():
 	except KeyError:
 		return False
 
+
 ### Remote communication with vim ###
-class VimView:
-	serverName = None
-	cmd = None
-	cmdFileArg = None
-	debug = False
-
-	curFile = None
-	curLine = None
-
-	nullPipe = None
-
+class VimView(object):
 	def __init__(self):
+		self.serverName = None
+		self.binaryName = None
+
+		self.cmd = None
+		self.cmdFileArg = None
+		self.debug = False
+
+		self.curFile = None
+		self.curLine = None
+
 		self.nullPipe = open(os.devnull, 'w')
-		self.setServerName('gdb')
-		self.setUseTabs(False)
+		self.setCommand(serverName='gdb', binaryName='vim', useTabs=False)
+
+	def __del__(self):
+		self.nullPipe.close()
 
 	def dbgPrint(self, info, msg):
 		if self.debug and msg:
 			gdb.write('vimview ' + info + ': ' + msg + '\n')
 
-	def setServerName(self, name):
-		if name:
-			self.serverName = name
-			self.cmd = ['vim', '+q', '--servername', name]
-
-	def setUseTabs(self, useTabs):
-		if useTabs:
+	def setCommand(self, serverName=None, binaryName=None, useTabs=None):
+		if serverName:
+			self.serverName = serverName
+		if binaryName:
+			self.binaryName = binaryName
+		if useTabs == True:
 			self.cmdFileArg = '--remote-tab'
-		else:
+		elif useTabs == False:
 			self.cmdFileArg = '--remote'
+
+		self.cmd = [self.binaryName, '+q', '--servername', self.serverName]
 
 	def execCmd(self, command):
 		cmd = self.cmd + ['--remote-expr', command]
@@ -308,11 +312,31 @@ class ParamServerName(gdb.Parameter):
 
 	def get_set_string(self):
 		global vimView
-		vimView.setServerName(self.value)
+		vimView.setCommand(serverName=self.value)
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
 		return 'Vim server name: "' + svalue + '"'
+
+
+### Parameter: vim binary name ###
+class ParamBinaryName(gdb.Parameter):
+	"""This is part of the VimView plugin."""
+	def __init__(self, cmd):
+		self.set_doc = 'VimView: vim executable name.'
+		self.show_doc = self.set_doc
+		super(ParamBinaryName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
+
+		global vimView
+		self.value = vimView.binaryName
+
+	def get_set_string(self):
+		global vimView
+		vimView.setCommand(binaryName=self.value)
+		return self.get_show_string(self.value)
+
+	def get_show_string(self, svalue):
+		return 'Vim executable name: "' + svalue + '"'
 
 
 ### Parameter: use tabs in vim ###
@@ -326,7 +350,7 @@ class ParamUseTabs(gdb.Parameter):
 
 	def get_set_string(self):
 		global vimView
-		vimView.setUseTabs(self.value)
+		vimView.setCommand(useTabs=self.value)
 		return self.get_show_string(self.value)
 
 	def get_show_string(self, svalue):
@@ -339,7 +363,7 @@ if __name__ == "__main__":
 
 	try:
 		serverName = _getVimServerNameVariable()
-		vimView.setServerName(serverName)
+		vimView.setCommand(serverName=serverName)
 		gdb.write('Vim server name: "' + serverName + '"\n')
 	except KeyError:
 		serverName = None
@@ -357,5 +381,6 @@ if __name__ == "__main__":
 	ParamVimViewOnStop('vimview-onstop')
 	ParamVimViewOnPrompt('vimview-onprompt')
 	ParamServerName('vimview-server')
+	ParamBinaryName('vimview-command')
 	ParamUseTabs('vimview-tabs')
 
