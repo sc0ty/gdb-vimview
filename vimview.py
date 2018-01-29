@@ -215,9 +215,9 @@ class VarCursorWord(gdb.Function):
 	cmd = None
 
 	def __init__ (self, name, cmd):
+		super(VarCursorWord, self).__init__ (name)
 		self.name = name
 		self.cmd = cmd
-		super(VarCursorWord, self).__init__ (name)
 
 	def invoke(self, *args):
 		global vimView
@@ -248,10 +248,10 @@ class ParamVimViewOnStop(gdb.Parameter):
 	isHooked = False
 
 	def __init__(self, cmd):
+		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 		self.value = False
 		self.set_doc = 'VimView: following frame on stop.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
 		if self.value == None:	# auto
@@ -277,10 +277,10 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 	prevHook = gdb.prompt_hook
 
 	def __init__(self, cmd):
+		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 		self.value = False
 		self.set_doc = 'VimView: following frame on prompt show.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
 		if self.value == None:	# auto
@@ -303,9 +303,9 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 class ParamServerName(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
+		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 		self.set_doc = 'VimView: remote vim server name.'
 		self.show_doc = self.set_doc
-		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 
 		global vimView
 		self.value = vimView.serverName
@@ -323,9 +323,9 @@ class ParamServerName(gdb.Parameter):
 class ParamBinaryName(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
+		super(ParamBinaryName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 		self.set_doc = 'VimView: vim executable name.'
 		self.show_doc = self.set_doc
-		super(ParamBinaryName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 
 		global vimView
 		self.value = vimView.binaryName
@@ -343,10 +343,10 @@ class ParamBinaryName(gdb.Parameter):
 class ParamUseTabs(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
+		super(ParamUseTabs, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
 		self.value = False
 		self.set_doc = 'VimView: open files in tabs.'
 		self.show_doc = self.set_doc
-		super(ParamUseTabs, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
 
 	def get_set_string(self):
 		global vimView
