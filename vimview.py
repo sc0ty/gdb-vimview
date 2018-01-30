@@ -64,6 +64,7 @@ class VimView(object):
 	def __init__(self):
 		self.serverName = None
 		self.binaryName = None
+		self.globalSymbol = 'main'
 
 		self.cmd = None
 		self.cmdFileArg = None
@@ -254,12 +255,13 @@ def new_breakpoint_handler(br):
 			(filename, line) = info_line.split(' ')[-1].split(':')
 			break
 	
-	# Open the a new source file in Vim if What if breakpoint is not in current buffer
+	# Open the new source file in Vim if the breakpoint is not in current buffer, and place a sign/marker
 	global vimView
 	vimView.openFile(filename)
 	vimView.execCmd('execute("sign place ' + str(br.number) + ' line=' + line + ' name=breakpoint file=' + filename + '")')
 
 def delete_breakpoint_handler(br):
+	# Remove the breakpoint sign/marker
 	global vimView
 	vimView.execCmd('execute("sign unplace ' + str(br.number) + '")')
 
@@ -267,11 +269,11 @@ def new_objfile_handler(event):
 	# This handler get called everytime gdb loads an object file.
 	# event.new_objfile.filename returns the name of the object file, not the source
 	# Thus we have to search for a global symbol, in this case 'main' to locate the source file
-	sym = gdb.lookup_global_symbol("main")
+	global vimView
+	sym = gdb.lookup_global_symbol(vimView.globalSymbol)
 	(filename, line) = (sym.symtab.fullname(), sym.line)
 
 	# Initialize Vim and open source file
-	global vimView
 	vimView.initVim()
 	vimView.openFile(filename, line)
 
@@ -344,6 +346,25 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 	def get_show_string(self, svalue):
 		return 'Vim follows frame on prompt: ' + _gdbBooleanToStr(svalue)
 
+
+### Parameter: global symbol ###
+class ParamGlobalSymbol(gdb.Parameter):
+	"""This parameter defines a global symbol to be searched when GDB loads an object file"""
+	def __init__(self, cmd):
+		super(ParamGlobalSymbol, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
+		self.set_doc = 'VimView: global-symbol ("main" by default).'
+		self.show_doc = self.set_doc
+
+		global vimView
+		self.value = vimView.globalSymbol
+
+	def get_set_string(self):
+		global vimView
+		vimView.globalSymbol = self.value
+		return self.get_show_string(self.value)
+
+	def get_show_string(self, svalue):
+	    return 'Parameter[' + self.cmd +'] : ' + svalue
 
 ### Parameter: vim server name ###
 class ParamServerName(gdb.Parameter):
@@ -448,6 +469,9 @@ if __name__ == "__main__":
 	except KeyError:
 		serverName = None
 
+	# GDB to return full path for files
+	gdb.execute('set filename-display absolute')
+
 	CmdView('vim')
 	CmdView('v')
 	CmdBreak('vbreak')
@@ -463,6 +487,7 @@ if __name__ == "__main__":
 	ParamServerName('vimview-server')
 	ParamBinaryName('vimview-command')
 	ParamUseTabs('vimview-tabs')
-	GenericParameter('new-breakpoint', 'breakpoint_created', new_breakpoint_handler)
-	GenericParameter('delete-breakpoint', 'breakpoint_deleted', delete_breakpoint_handler)
-	GenericParameter('file-load', 'new_objfile', new_objfile_handler)
+	ParamGlobalSymbol('vimview-global-symbol')
+	GenericParameter('vimview-new-breakpoint', 'breakpoint_created', new_breakpoint_handler)
+	GenericParameter('vimview-delete-breakpoint', 'breakpoint_deleted', delete_breakpoint_handler)
+	GenericParameter('vimview-new-objectfile', 'new_objfile', new_objfile_handler)
