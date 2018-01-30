@@ -18,3 +18,12 @@ set vimview-tabs on
 # enable debug mode
 #pi vimView.debug = True
 
+# glboal-symbol is used to find the location of source file when a new objectfile is loaded
+#set vimview-global-symbol main
+
+# show source file in Vim as soon as an object file is loaded in GDB
+set vimview-new-objectfile on
+
+# show/hide breakpoint markers in Vim
+set vimview-new-breakpoint on
+set vimview-delete-breakpoint on
