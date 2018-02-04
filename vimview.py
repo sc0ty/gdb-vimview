@@ -57,7 +57,7 @@ def _isVimServerAlive():
 		err = err.decode('utf-8')
 		print('err', err)
 		return False
-	return out.decode('utf-8') == u'GDB\n'
+	return out.decode('utf-8').strip() == vimView.serverName.upper()
 
 ### Remote communication with vim ###
 class VimView(object):
