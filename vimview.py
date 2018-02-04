@@ -49,12 +49,22 @@ def _isVimServerNameVariableSet():
 	except KeyError:
 		return False
 
+def _isVimServerAlive():
+	cmd = ['vim', '--serverlist']
+	vim = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	out, err = vim.communicate()
+	if err:
+		err = err.decode('utf-8')
+		print('err', err)
+		return False
+	return out.decode('utf-8') == u'GDB\n'
 
 ### Remote communication with vim ###
 class VimView(object):
 	def __init__(self):
 		self.serverName = None
 		self.binaryName = None
+		self.globalSymbol = 'main'
 
 		self.cmd = None
 		self.cmdFileArg = None
@@ -65,6 +75,7 @@ class VimView(object):
 
 		self.nullPipe = open(os.devnull, 'w')
 		self.setCommand(serverName='gdb', binaryName='vim', useTabs=False)
+		self.vimInitialized = False
 
 	def __del__(self):
 		self.nullPipe.close()
@@ -148,6 +159,12 @@ class VimView(object):
 		file = frameSym.symtab.fullname()
 		self.openFile(file, frameSym.line, existingOnly, reopen)
 
+	def initVim(self):
+		# Define a Vim highlight group and create a breakpoint sign
+		if not self.vimInitialized and _isVimServerAlive():
+			vimView.execCmd('execute("highlight Breakpoint ctermbg=red ctermfg=red cterm=NONE")')
+			vimView.execCmd('execute("sign define breakpoint text=>> texthl=Breakpoint")')
+			self.vimInitialized = True
 
 ### Command: view current file in vim ###
 class CmdView(gdb.Command):
@@ -215,9 +232,9 @@ class VarCursorWord(gdb.Function):
 	cmd = None
 
 	def __init__ (self, name, cmd):
+		super(VarCursorWord, self).__init__ (name)
 		self.name = name
 		self.cmd = cmd
-		super(VarCursorWord, self).__init__ (name)
 
 	def invoke(self, *args):
 		global vimView
@@ -228,6 +245,37 @@ class VarCursorWord(gdb.Function):
 			gdb.write('error: ' + err)
 			return ''
 
+### Event handlers ###
+def new_breakpoint_handler(br):
+	# This handler relies on GDB returning the fullpath of the srouce file when executing 'info breakpoint #n'
+	# gdb.Breakpoint.location does not always return filename:line information, hence we have to find that the hard-way
+	info = gdb.execute("info b " + str(br.number), to_string=True)
+	for info_line in info.split('\n'):
+		if ('breakpoint' in info_line):
+			(filename, line) = info_line.split(' ')[-1].split(':')
+			break
+	
+	# Open the new source file in Vim if the breakpoint is not in current buffer, and place a sign/marker
+	global vimView
+	vimView.openFile(filename)
+	vimView.execCmd('execute("sign place ' + str(br.number) + ' line=' + line + ' name=breakpoint file=' + filename + '")')
+
+def delete_breakpoint_handler(br):
+	# Remove the breakpoint sign/marker
+	global vimView
+	vimView.execCmd('execute("sign unplace ' + str(br.number) + '")')
+
+def new_objfile_handler(event):
+	# This handler get called everytime gdb loads an object file.
+	# event.new_objfile.filename returns the name of the object file, not the source
+	# Thus we have to search for a global symbol, in this case 'main' to locate the source file
+	global vimView
+	sym = gdb.lookup_global_symbol(vimView.globalSymbol)
+	(filename, line) = (sym.symtab.fullname(), sym.line)
+
+	# Initialize Vim and open source file
+	vimView.initVim()
+	vimView.openFile(filename, line)
 
 ### Event handlers ###
 def eventStop(ev):
@@ -248,10 +296,10 @@ class ParamVimViewOnStop(gdb.Parameter):
 	isHooked = False
 
 	def __init__(self, cmd):
+		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 		self.value = False
 		self.set_doc = 'VimView: following frame on stop.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnStop, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
 		if self.value == None:	# auto
@@ -277,10 +325,10 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 	prevHook = gdb.prompt_hook
 
 	def __init__(self, cmd):
+		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 		self.value = False
 		self.set_doc = 'VimView: following frame on prompt show.'
 		self.show_doc = self.set_doc
-		super(ParamVimViewOnPrompt, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
 
 	def get_set_string(self):
 		if self.value == None:	# auto
@@ -299,13 +347,32 @@ class ParamVimViewOnPrompt(gdb.Parameter):
 		return 'Vim follows frame on prompt: ' + _gdbBooleanToStr(svalue)
 
 
+### Parameter: global symbol ###
+class ParamGlobalSymbol(gdb.Parameter):
+	"""This parameter defines a global symbol to be searched when GDB loads an object file"""
+	def __init__(self, cmd):
+		super(ParamGlobalSymbol, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
+		self.set_doc = 'VimView: global-symbol ("main" by default).'
+		self.show_doc = self.set_doc
+
+		global vimView
+		self.value = vimView.globalSymbol
+
+	def get_set_string(self):
+		global vimView
+		vimView.globalSymbol = self.value
+		return self.get_show_string(self.value)
+
+	def get_show_string(self, svalue):
+	    return 'Parameter[' + self.cmd +'] : ' + svalue
+
 ### Parameter: vim server name ###
 class ParamServerName(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
+		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 		self.set_doc = 'VimView: remote vim server name.'
 		self.show_doc = self.set_doc
-		super(ParamServerName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 
 		global vimView
 		self.value = vimView.serverName
@@ -323,9 +390,9 @@ class ParamServerName(gdb.Parameter):
 class ParamBinaryName(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
+		super(ParamBinaryName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 		self.set_doc = 'VimView: vim executable name.'
 		self.show_doc = self.set_doc
-		super(ParamBinaryName, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_STRING)
 
 		global vimView
 		self.value = vimView.binaryName
@@ -343,10 +410,10 @@ class ParamBinaryName(gdb.Parameter):
 class ParamUseTabs(gdb.Parameter):
 	"""This is part of the VimView plugin."""
 	def __init__(self, cmd):
+		super(ParamUseTabs, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
 		self.value = False
 		self.set_doc = 'VimView: open files in tabs.'
 		self.show_doc = self.set_doc
-		super(ParamUseTabs, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_BOOLEAN)
 
 	def get_set_string(self):
 		global vimView
@@ -355,6 +422,40 @@ class ParamUseTabs(gdb.Parameter):
 
 	def get_show_string(self, svalue):
 		return 'Open files in tabs: ' + _gdbBooleanToStr(svalue)
+
+### Parameter: Generic Hook Parameter ###
+class GenericParameter(gdb.Parameter):
+	""" This parameter is used to enable/disable hooking a handler to a gdb event """
+
+	isHooked = False
+	
+	def __init__(self, cmd, event, handler):
+		super(GenericParameter, self).__init__(cmd, gdb.COMMAND_SUPPORT, gdb.PARAM_AUTO_BOOLEAN)
+		self.event = event
+		self.handler = handler
+		self.cmd = cmd
+		self.value = False
+		self.set_doc = 'Parameter [' + self.cmd + ']'
+		self.show_doc = self.set_doc
+
+	def get_set_string(self):
+		if self.value == None:	# auto
+			self.value = False
+
+		if self.value:
+			if not self.isHooked:
+				# Subscribe to event
+				getattr(gdb.events, self.event).connect(self.handler)
+				self.isHooked = True
+		else:
+			if self.isHooked:
+				# Unsubscribe from event
+				getattr(gdb.events, self.event).disconnect(self.handler)
+				self.isHooked = False
+		return self.get_show_string(_gdbBooleanToStr(self.value))
+
+	def get_show_string(self, svalue):
+	    return 'Parameter[' + self.cmd +'] : ' + svalue
 
 
 if __name__ == "__main__":
@@ -367,6 +468,9 @@ if __name__ == "__main__":
 		gdb.write('Vim server name: "' + serverName + '"\n')
 	except KeyError:
 		serverName = None
+
+	# GDB to return full path for files
+	gdb.execute('set filename-display absolute')
 
 	CmdView('vim')
 	CmdView('v')
@@ -383,4 +487,7 @@ if __name__ == "__main__":
 	ParamServerName('vimview-server')
 	ParamBinaryName('vimview-command')
 	ParamUseTabs('vimview-tabs')
-
+	ParamGlobalSymbol('vimview-global-symbol')
+	GenericParameter('vimview-new-breakpoint', 'breakpoint_created', new_breakpoint_handler)
+	GenericParameter('vimview-delete-breakpoint', 'breakpoint_deleted', delete_breakpoint_handler)
+	GenericParameter('vimview-new-objectfile', 'new_objfile', new_objfile_handler)
